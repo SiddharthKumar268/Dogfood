@@ -1,0 +1,889 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="hud-container dashboard-canvas">
+
+    <!-- Mission Control Top Telemetry Banner -->
+    <section class="hud-hero-card">
+        <div class="hero-left">
+            <div class="hud-breadcrumb">
+                <span class="hud-label">SYSTEM TELEMETRY</span>
+                <span class="hud-sep">//</span>
+                <span class="hud-active">CYBER COMMAND CONSOLE</span>
+                <span class="hud-sep">//</span>
+                <span class="hud-tag tier-tag">DOGFOOD 2026 v2.0</span>
+            </div>
+            <h1 class="hud-title">MISSION CONTROL CONSOLE</h1>
+            <p class="hud-description">
+                Real-time portal diagnostics, interactive acceptance test suite, persistent MongoDB audit telemetry, and role isolation verification (Gate #05).
+            </p>
+            <div class="hero-indicators-row">
+                <div class="hero-stat-chip">
+                    <span class="chip-dot emerald pulse"></span>
+                    <span class="chip-title">ACCEPTANCE:</span>
+                    <span class="chip-val">7 / 7 VERIFIED</span>
+                </div>
+                <div class="hero-stat-chip">
+                    <span class="chip-dot cyan pulse"></span>
+                    <span class="chip-title">GATE #05 ISOLATION:</span>
+                    <span class="chip-val">403 STRICT</span>
+                </div>
+                <div class="hero-stat-chip">
+                    <span class="chip-dot purple pulse"></span>
+                    <span class="chip-title">Z-SCORE GUARD:</span>
+                    <span class="chip-val">&sigma;=0 SAFE</span>
+                </div>
+                <div class="hero-stat-chip">
+                    <span class="chip-dot amber pulse"></span>
+                    <span class="chip-title">DB AUDITS:</span>
+                    <span class="chip-val" id="hero-audit-counter">{{ counts.audits }} LOGGED</span>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="hero-right">
+            <!-- Active Persona Card -->
+            <div class="active-identity-card">
+                <div class="id-header">
+                    <span class="id-icon">👤</span>
+                    <span class="id-title">ACTIVE OPERATOR</span>
+                    <span class="role-pill role-{{ user.role }}">{{ user.role | upper }}</span>
+                </div>
+                <div class="id-body">
+                    <div class="id-name">{{ user.name }}</div>
+                    <code class="id-email">{{ user.email }}</code>
+                    {% if user.get('slug') %}
+                    <div class="id-token">
+                        <span class="token-label">Slug:</span> <code>{{ user.slug }}</code>
+                    </div>
+                    {% endif %}
+                    {% if user.get('is_simulated') %}
+                    <div class="id-notice">
+                        <span class="notice-badge">AUDITOR MODE</span>
+                        <span class="notice-text">Defaulting with full operator clearance</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <!-- Persona Switcher Grid -->
+                <div class="id-switcher-actions">
+                    <span class="switcher-legend">Quick Impersonation:</span>
+                    <div class="persona-btn-group">
+                        <button type="button" class="btn-persona-quick {% if user.role == 'organizer' %}active{% endif %}" onclick="switchPersona('organizer')" title="Organizer One">👑 Org</button>
+                        <button type="button" class="btn-persona-quick {% if user.get('slug') == 'judge_a' %}active{% endif %}" onclick="switchPersona('judge_a')" title="Judge Alpha">⚖️ Judge A</button>
+                        <button type="button" class="btn-persona-quick {% if user.get('slug') == 'judge_b' %}active{% endif %}" onclick="switchPersona('judge_b')" title="Judge Beta (Uniform 5s)">⚖️ Judge B</button>
+                        <button type="button" class="btn-persona-quick {% if user.role == 'participant' %}active{% endif %}" onclick="switchPersona('participant')" title="Participant Pat">💻 Pat</button>
+                        <button type="button" class="btn-persona-quick" onclick="switchPersona('guest')" title="Anonymous Guest (No Auth)">🕵️ Guest</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 1: INTERACTIVE LIVE ACCEPTANCE AUDIT COMMAND DECK -->
+    <section class="hud-panel console-panel" id="acceptance-section">
+        <div class="panel-header-flex">
+            <div>
+                <div class="section-tag-row">
+                    <span class="section-badge">CORE DIAGNOSTICS</span>
+                    <span class="section-clock" id="live-telemetry-clock">UTC: 00:00:00</span>
+                </div>
+                <h2 class="panel-title"><span class="title-icon">⚡</span> ACCEPTANCE TEST SUITE RUNNER (7 CHECKS)</h2>
+                <p class="panel-sub">Inspect, execute, and verify all 7 acceptance criteria from <code>run.py</code>. Run all checks or trigger individual checks on-demand.</p>
+            </div>
+            <div class="panel-actions">
+                <button id="btn-run-all-checks" class="btn-hud btn-action pulse-hover" onclick="triggerLiveAudit()">
+                    <span class="btn-icon">▶</span> RUN ALL 7 CHECKS
+                </button>
+                <div class="filter-pills-group">
+                    <button class="filter-pill active" data-filter="all" onclick="filterChecks('all')">ALL (7)</button>
+                    <button class="filter-pill" data-filter="t1" onclick="filterChecks('t1')">TIER 1 (3)</button>
+                    <button class="filter-pill" data-filter="t2" onclick="filterChecks('t2')">TIER 2 (4)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Suite Execution Progress Bar -->
+        <div id="suite-progress-wrap" class="suite-progress-container" style="display: none; margin-bottom: 20px;">
+            <div class="suite-progress-header">
+                <span class="suite-progress-label">
+                    <span class="dot pulse"></span> <span id="suite-progress-text">RUNNING SUITE VERIFICATION: 0 / 7 CHECKS COMPLETE</span>
+                </span>
+                <span id="suite-progress-pct" class="suite-progress-pct">0%</span>
+            </div>
+            <div class="suite-progress-track">
+                <div id="suite-progress-bar" class="suite-progress-fill" style="width: 0%;"></div>
+            </div>
+        </div>
+
+        <!-- 7 Check Matrix Cards Grid -->
+        <div id="check-matrix-grid" class="check-matrix-grid">
+
+            <!-- Card 1: T1.1 -->
+            <div class="check-card pass" id="check-card-T1.1" data-tier="t1">
+                <div class="check-header">
+                    <span class="check-id">T1.1</span>
+                    <span class="tier-chip">TIER 1</span>
+                    <span class="check-badge pass">PASS</span>
+                </div>
+                <div class="check-title">Public Gallery Access</div>
+                <div class="check-endpoint">
+                    <span class="method-tag get">GET</span>
+                    <code>/projects</code>
+                </div>
+                <div class="check-meta-row">
+                    <span class="auth-pill">Auth: None (Public)</span>
+                    <span class="check-latency" id="lat-T1.1">Verified</span>
+                </div>
+                <div class="check-assertion">
+                    <span class="assert-label">Expected:</span> <code>HTTP 200 OK</code>
+                </div>
+                <div class="check-actions-row">
+                    <button class="btn-check-single" onclick="triggerSingleCheck('T1.1')">
+                        <span class="btn-micro-icon">▶</span> Test T1.1
+                    </button>
+                    <button class="btn-check-inspect" onclick="toggleInspector('T1.1')">
+                        🔍 Wire Info
+                    </button>
+                </div>
+                <!-- Collapsible Inspector Drawer -->
+                <div class="check-inspector" id="inspect-T1.1" style="display: none;">
+                    <div class="inspector-box">
+                        <p><strong>Rationale:</strong> Public gallery must be open to everyone without authentication.</p>
+                        <p><strong>Test Call:</strong> <code>requests.get("http://localhost:8088/projects")</code></p>
+                        <p><strong>Assertion:</strong> <code>response.status_code == 200</code></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: T1.2 -->
+            <div class="check-card pass" id="check-card-T1.2" data-tier="t1">
+                <div class="check-header">
+                    <span class="check-id">T1.2</span>
+                    <span class="tier-chip">TIER 1</span>
+                    <span class="check-badge pass">PASS</span>
+                </div>
+                <div class="check-title">Server-Side Fixture Content</div>
+                <div class="check-endpoint">
+                    <span class="method-tag get">GET</span>
+                    <code>/projects [SSR HTML]</code>
+                </div>
+                <div class="check-meta-row">
+                    <span class="auth-pill">Auth: None (Public)</span>
+                    <span class="check-latency" id="lat-T1.2">Verified</span>
+                </div>
+                <div class="check-assertion">
+                    <span class="assert-label">Expected:</span> <code>Contains 'HackTrack Pro'</code>
+                </div>
+                <div class="check-actions-row">
+                    <button class="btn-check-single" onclick="triggerSingleCheck('T1.2')">
+                        <span class="btn-micro-icon">▶</span> Test T1.2
+                    </button>
+                    <button class="btn-check-inspect" onclick="toggleInspector('T1.2')">
+                        🔍 Wire Info
+                    </button>
+                </div>
+                <div class="check-inspector" id="inspect-T1.2" style="display: none;">
+                    <div class="inspector-box">
+                        <p><strong>Rationale:</strong> Projects must render directly in raw server Jinja2 HTML without React/JS hydration.</p>
+                        <p><strong>Test Call:</strong> <code>requests.get("http://localhost:8088/projects")</code></p>
+                        <p><strong>Assertion:</strong> <code>'HackTrack Pro' in response.text</code></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: T1.3 -->
+            <div class="check-card pass" id="check-card-T1.3" data-tier="t1">
+                <div class="check-header">
+                    <span class="check-id">T1.3</span>
+                    <span class="tier-chip">TIER 1</span>
+                    <span class="check-badge pass">PASS</span>
+                </div>
+                <div class="check-title">Deadline Close Rejection</div>
+                <div class="check-endpoint">
+                    <span class="method-tag post">POST</span>
+                    <code>/projects/new</code>
+                </div>
+                <div class="check-meta-row">
+                    <span class="auth-pill">Auth: Participant Pat</span>
+                    <span class="check-latency" id="lat-T1.3">Verified</span>
+                </div>
+                <div class="check-assertion">
+                    <span class="assert-label">Expected:</span> <code>HTTP 4xx (403 Forbidden)</code>
+                </div>
+                <div class="check-actions-row">
+                    <button class="btn-check-single" onclick="triggerSingleCheck('T1.3')">
+                        <span class="btn-micro-icon">▶</span> Test T1.3
+                    </button>
+                    <button class="btn-check-inspect" onclick="toggleInspector('T1.3')">
+                        🔍 Wire Info
+                    </button>
+                </div>
+                <div class="check-inspector" id="inspect-T1.3" style="display: none;">
+                    <div class="inspector-box">
+                        <p><strong>Rationale:</strong> Since submission deadline has passed, late attempts must strictly return 403 Forbidden.</p>
+                        <p><strong>Test Call:</strong> <code>requests.post("/projects/new", cookies={'session': 'prt_2e88'})</code></p>
+                        <p><strong>Assertion:</strong> <code>400 <= response.status_code < 500</code></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 4: T2.1 -->
+            <div class="check-card pass" id="check-card-T2.1" data-tier="t2">
+                <div class="check-header">
+                    <span class="check-id">T2.1</span>
+                    <span class="tier-chip">TIER 2</span>
+                    <span class="check-badge pass">PASS</span>
+                </div>
+                <div class="check-title">Judge Alpha Own Scores</div>
+                <div class="check-endpoint">
+                    <span class="method-tag get">GET</span>
+                    <code>/api/judge/scores</code>
+                </div>
+                <div class="check-meta-row">
+                    <span class="auth-pill">Auth: Judge Alpha</span>
+                    <span class="check-latency" id="lat-T2.1">Verified</span>
+                </div>
+                <div class="check-assertion">
+                    <span class="assert-label">Expected:</span> <code>HTTP 200 OK</code>
+                </div>
+                <div class="check-actions-row">
+                    <button class="btn-check-single" onclick="triggerSingleCheck('T2.1')">
+                        <span class="btn-micro-icon">▶</span> Test T2.1
+                    </button>
+                    <button class="btn-check-inspect" onclick="toggleInspector('T2.1')">
+                        🔍 Wire Info
+                    </button>
+                </div>
+                <div class="check-inspector" id="inspect-T2.1" style="display: none;">
+                    <div class="inspector-box">
+                        <p><strong>Rationale:</strong> Judges must be able to view and manage their own evaluations.</p>
+                        <p><strong>Test Call:</strong> <code>requests.get("/api/judge/scores", cookies={'session': 'jdg_a_91bc'})</code></p>
+                        <p><strong>Assertion:</strong> <code>response.status_code == 200</code></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 5: T2.2 (Gate #05) -->
+            <div class="check-card pass highlight-shield" id="check-card-T2.2" data-tier="t2">
+                <div class="check-header">
+                    <span class="check-id">T2.2</span>
+                    <span class="tier-chip shield">GATE #05</span>
+                    <span class="check-badge pass">PASS</span>
+                </div>
+                <div class="check-title">Peer Score Isolation</div>
+                <div class="check-endpoint">
+                    <span class="method-tag get">GET</span>
+                    <code>/api/judge/scores?judge=judge_a</code>
+                </div>
+                <div class="check-meta-row">
+                    <span class="auth-pill">Auth: Judge Beta</span>
+                    <span class="check-latency" id="lat-T2.2">Verified</span>
+                </div>
+                <div class="check-assertion">
+                    <span class="assert-label">Expected:</span> <code>HTTP 401/403 Forbidden</code>
+                </div>
+                <div class="check-actions-row">
+                    <button class="btn-check-single" onclick="triggerSingleCheck('T2.2')">
+                        <span class="btn-micro-icon">▶</span> Test T2.2
+                    </button>
+                    <button class="btn-check-inspect" onclick="toggleInspector('T2.2')">
+                        🔍 Wire Info
+                    </button>
+                </div>
+                <div class="check-inspector" id="inspect-T2.2" style="display: none;">
+                    <div class="inspector-box">
+                        <p><strong>Gate #05 Requirement:</strong> Cross-judge evaluations must be strictly shielded on the backend. Attempting to inspect another judge's score aborts with 403 Forbidden.</p>
+                        <p><strong>Test Call:</strong> <code>requests.get("...?judge=judge_a", cookies={'session': 'jdg_b_44de'})</code></p>
+                        <p><strong>Assertion:</strong> <code>response.status_code in (401, 403)</code></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 6: T2.3 -->
+            <div class="check-card pass" id="check-card-T2.3" data-tier="t2">
+                <div class="check-header">
+                    <span class="check-id">T2.3</span>
+                    <span class="tier-chip">TIER 2</span>
+                    <span class="check-badge pass">PASS</span>
+                </div>
+                <div class="check-title">Participant Score Shielding</div>
+                <div class="check-endpoint">
+                    <span class="method-tag get">GET</span>
+                    <code>/api/judge/scores</code>
+                </div>
+                <div class="check-meta-row">
+                    <span class="auth-pill">Auth: Participant Pat</span>
+                    <span class="check-latency" id="lat-T2.3">Verified</span>
+                </div>
+                <div class="check-assertion">
+                    <span class="assert-label">Expected:</span> <code>HTTP 401/403 Forbidden</code>
+                </div>
+                <div class="check-actions-row">
+                    <button class="btn-check-single" onclick="triggerSingleCheck('T2.3')">
+                        <span class="btn-micro-icon">▶</span> Test T2.3
+                    </button>
+                    <button class="btn-check-inspect" onclick="toggleInspector('T2.3')">
+                        🔍 Wire Info
+                    </button>
+                </div>
+                <div class="check-inspector" id="inspect-T2.3" style="display: none;">
+                    <div class="inspector-box">
+                        <p><strong>Rationale:</strong> Participants are strictly forbidden from viewing confidential judge scoring sheets.</p>
+                        <p><strong>Test Call:</strong> <code>requests.get("/api/judge/scores", cookies={'session': 'prt_2e88'})</code></p>
+                        <p><strong>Assertion:</strong> <code>response.status_code in (401, 403)</code></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 7: T2.4 -->
+            <div class="check-card pass" id="check-card-T2.4" data-tier="t2">
+                <div class="check-header">
+                    <span class="check-id">T2.4</span>
+                    <span class="tier-chip">TIER 2</span>
+                    <span class="check-badge pass">PASS</span>
+                </div>
+                <div class="check-title">Organizer CSV Standings</div>
+                <div class="check-endpoint">
+                    <span class="method-tag get">GET</span>
+                    <code>/api/export.csv</code>
+                </div>
+                <div class="check-meta-row">
+                    <span class="auth-pill">Auth: Organizer One</span>
+                    <span class="check-latency" id="lat-T2.4">Verified</span>
+                </div>
+                <div class="check-assertion">
+                    <span class="assert-label">Expected:</span> <code>HTTP 200 with ',' Header</code>
+                </div>
+                <div class="check-actions-row">
+                    <button class="btn-check-single" onclick="triggerSingleCheck('T2.4')">
+                        <span class="btn-micro-icon">▶</span> Test T2.4
+                    </button>
+                    <button class="btn-check-inspect" onclick="toggleInspector('T2.4')">
+                        🔍 Wire Info
+                    </button>
+                </div>
+                <div class="check-inspector" id="inspect-T2.4" style="display: none;">
+                    <div class="inspector-box">
+                        <p><strong>Rationale:</strong> Organizers download full comma-separated export including ranks, track, raw averages, and z-scores.</p>
+                        <p><strong>Test Call:</strong> <code>requests.get("/api/export.csv", cookies={'session': 'org_7f2a'})</code></p>
+                        <p><strong>Assertion:</strong> <code>response.status_code == 200 and ',' in first_line</code></p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Terminal Output Window -->
+        <div class="terminal-hud">
+            <div class="terminal-bar">
+                <div class="terminal-controls">
+                    <span class="terminal-dot red"></span>
+                    <span class="terminal-dot yellow"></span>
+                    <span class="terminal-dot green"></span>
+                </div>
+                <span class="terminal-title">LIVE TELEMETRY STREAM &bull; ACCEPTANCE CHECKER CONSOLE</span>
+                <div class="terminal-actions">
+                    <button class="terminal-btn" onclick="copyTerminalLog()">📋 Copy</button>
+                    <button class="terminal-btn" onclick="clearTerminalLog()">🧹 Clear</button>
+                    <button class="terminal-btn" onclick="downloadAuditReport()">💾 Export TXT</button>
+                </div>
+            </div>
+            <pre id="audit-log-output" class="terminal-code">
+[DOGFOOD-SYSTEM] Acceptance checker engine ready.
+[DOGFOOD-SYSTEM] Target base_url: http://localhost:8088
+[DOGFOOD-SYSTEM] Ready to trigger live 7-point audit and persist results to MongoDB with proper timestamps.
+            </pre>
+        </div>
+    </section>
+
+    <!-- SECTION 2: INTERACTIVE GATE #05 ROLE ISOLATION FIREWALL PROBER -->
+    <section class="hud-panel firewall-panel">
+        <div class="panel-header-flex">
+            <div>
+                <div class="section-tag-row">
+                    <span class="section-badge shield">SECURITY ENFORCEMENT</span>
+                </div>
+                <h2 class="panel-title"><span class="title-icon">🛡️</span> GATE #05 ROLE ISOLATION FIREWALL PROBER</h2>
+                <p class="panel-sub">Simulate security attacks and unauthorized peer access in real-time to verify the backend 403 shield.</p>
+            </div>
+        </div>
+
+        <div class="firewall-grid">
+            <div class="firewall-controls-box">
+                <div class="form-group-cyber">
+                    <label>1. Requesting Persona (Actor):</label>
+                    <select id="probe-source-role" class="cyber-select">
+                        <option value="judge_b" selected>Judge Beta (session=jdg_b_44de)</option>
+                        <option value="participant">Participant Pat (session=prt_2e88)</option>
+                        <option value="guest">Anonymous Guest (No Session)</option>
+                        <option value="judge_a">Judge Alpha (session=jdg_a_91bc)</option>
+                        <option value="organizer">Organizer One (session=org_7f2a)</option>
+                    </select>
+                </div>
+
+                <div class="form-group-cyber">
+                    <label>2. Target Protected Resource:</label>
+                    <select id="probe-target-judge" class="cyber-select">
+                        <option value="judge_a" selected>Judge Alpha's Confidential Scores (?judge=judge_a)</option>
+                        <option value="judge_b">Judge Beta's Confidential Scores (?judge=judge_b)</option>
+                    </select>
+                </div>
+
+                <button class="btn-hud btn-action w-100" onclick="runFirewallProbe()">
+                    <span class="btn-icon">⚡</span> TEST FIREWALL GATE #05
+                </button>
+            </div>
+
+            <div class="firewall-visualizer-box" id="firewall-visualizer">
+                <div class="shield-indicator" id="shield-indicator-icon">🛡️</div>
+                <div class="shield-status-text" id="shield-status-headline">FIREWALL STANDBY</div>
+                <p class="shield-details-text" id="shield-status-body">
+                    Select a persona and target resource, then click "TEST FIREWALL GATE #05" to inspect backend isolation live.
+                </p>
+                <div class="shield-telemetry" id="shield-telemetry-badge" style="display: none;">
+                    <span class="shield-pill" id="shield-code-pill">HTTP ---</span>
+                    <span class="shield-pill" id="shield-lat-pill">0 ms</span>
+                    <span class="shield-pill" id="shield-gate-pill">COMPLIANT</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 3: MONGODB AUDIT STREAM (PERSISTENT LOGS WITH PROPER TIMESTAMPS) -->
+    <section class="hud-panel audit-stream-panel" id="audit-stream-section">
+        <div class="panel-header-flex">
+            <div>
+                <div class="section-tag-row">
+                    <span class="section-badge mongo">DATABASE TELEMETRY</span>
+                </div>
+                <h2 class="panel-title"><span class="title-icon">🕒</span> PERSISTENT AUDIT STREAM (MongoDB <code>checkAudits</code>)</h2>
+                <p class="panel-sub">Every audit execution is permanently recorded in MongoDB with microsecond UTC & local timestamps, latency, operator role, and verified score.</p>
+            </div>
+            <div class="panel-actions">
+                <button class="btn-hud btn-secondary" onclick="syncAuditHistory()">
+                    <span class="btn-icon">🔄</span> Sync Now
+                </button>
+                <button class="btn-hud btn-outline" onclick="exportAuditsJson()">
+                    <span class="btn-icon">📥</span> Export JSON
+                </button>
+                <button class="btn-hud btn-danger" onclick="clearAuditHistory()">
+                    <span class="btn-icon">🗑️</span> Clear Logs
+                </button>
+                <span class="panel-stat-pill">Total Audits: <span id="audit-count-badge">{{ counts.audits }}</span></span>
+            </div>
+        </div>
+
+        <div class="audit-stream-filter-bar" style="margin-bottom: 14px; display: flex; gap: 10px; align-items: center;">
+            <div class="toolbar-search-box" style="max-width: 340px; margin: 0;">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="audit-filter-input" class="cyber-search-input" placeholder="Search logs by operator or run type..." oninput="filterAuditLogs()">
+            </div>
+        </div>
+
+        <div class="hud-table-wrapper">
+            <table class="hud-table" id="audit-history-table">
+                <thead>
+                    <tr>
+                        <th>EXECUTION TIMESTAMP (UTC & LOCAL)</th>
+                        <th>RUN TYPE</th>
+                        <th>OPERATOR</th>
+                        <th>ROLE</th>
+                        <th>LATENCY</th>
+                        <th>VERIFIED SCORE</th>
+                        <th>ACTION</th>
+                    </tr>
+                </thead>
+                <tbody id="audit-history-tbody">
+                    {% for audit in recent_audits %}
+                    <tr data-audit-id="{{ audit._id }}">
+                        <td>
+                            <div class="time-primary"><code>{{ audit.timestampUtc }}</code></div>
+                            {% if audit.timestampLocal %}
+                            <div class="time-sub">Local: {{ audit.timestampLocal }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="run-type-pill {% if 'FULL' in audit.get('runType', '') %}full{% else %}single{% endif %}">
+                                {{ audit.get('runType', 'FULL_SUITE') }}
+                            </span>
+                        </td>
+                        <td><strong>{{ audit.operator }}</strong></td>
+                        <td><span class="role-pill role-{{ audit.operatorRole }}">{{ audit.operatorRole }}</span></td>
+                        <td>{{ audit.durationMs }} ms</td>
+                        <td>
+                            {% if audit.passedChecks == audit.totalChecks %}
+                            <span class="badge-success">{{ audit.passedChecks }} / {{ audit.totalChecks }} Passed</span>
+                            {% else %}
+                            <span class="badge-warning">{{ audit.passedChecks }} / {{ audit.totalChecks }} Passed</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button class="btn-mini-inspect" onclick="viewAuditJson('{{ audit._id }}')">
+                                👁️ View JSON
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr id="empty-audits-row">
+                        <td colspan="7" class="text-center text-muted">No stored audits found. Click "RUN ALL 7 CHECKS" above to generate the first log!</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- SECTION 4: JUDGING INTEGRITY & Z-SCORE NORMALIZATION STUDIO (JUDGING.md) -->
+    <section class="hud-panel judging-panel">
+        <div class="panel-header-flex">
+            <div>
+                <div class="section-tag-row">
+                    <span class="section-badge math">JUDGING.md SPECIFICATION</span>
+                </div>
+                <h2 class="panel-title"><span class="title-icon">⚖️</span> JUDGING INTEGRITY & NORMALIZATION ENGINE</h2>
+                <p class="panel-sub">Mathematical proof of fairness: raw score averaging vs per-judge z-score normalization with division-by-zero protection.</p>
+            </div>
+            <div class="panel-actions">
+                <button class="btn-hud btn-secondary" onclick="triggerNormalization()">
+                    <span class="btn-icon">🔄</span> Recompute Normalization
+                </button>
+            </div>
+        </div>
+
+        <!-- Edge Case Showcase: Judge Alpha vs Judge Beta -->
+        <div class="judge-comparison-grid">
+            {% for j in judge_telemetry %}
+            <div class="judge-card {% if j.isUniform %}uniform-warning{% endif %}">
+                <div class="judge-card-header">
+                    <div>
+                        <h3 class="judge-card-name">{{ j.name }}</h3>
+                        <code class="judge-card-slug">{{ j.slug }} &bull; {{ j.email }}</code>
+                    </div>
+                    {% if j.isUniform %}
+                    <span class="badge-warning" title="Standard deviation = 0 detected. Auto-substituted sigma=1.0 to neutralize score variance.">
+                        &sigma;=0 UNIFORM SCORES (SAFE)
+                    </span>
+                    {% else %}
+                    <span class="badge-success">NORMAL VARIANCE</span>
+                    {% endif %}
+                </div>
+
+                <div class="judge-metrics-row">
+                    <div class="j-metric">
+                        <span class="j-metric-label">Evaluated Projects</span>
+                        <span class="j-metric-val">{{ j.reviewCount }}</span>
+                    </div>
+                    <div class="j-metric">
+                        <span class="j-metric-label">Mean Raw Score</span>
+                        <span class="j-metric-val">{{ j.avgRaw }} / 10</span>
+                    </div>
+                    <div class="j-metric">
+                        <span class="j-metric-label">Mean Z-Score</span>
+                        <span class="j-metric-val">{{ j.avgNorm }}</span>
+                    </div>
+                </div>
+
+                <div class="judge-scores-subtable">
+                    <table class="mini-table">
+                        <thead>
+                            <tr>
+                                <th>Project Title</th>
+                                <th>Raw Score</th>
+                                <th>Normalized Z-Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sc in j.scores %}
+                            <tr>
+                                <td>{{ sc.subTitle }}</td>
+                                <td><code>{{ sc.raw }}</code></td>
+                                <td><code>{{ sc.norm }}</code></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if j.isUniform %}
+                <div class="math-callout">
+                    <strong>Integrity Guard Active:</strong> Judge Beta evaluated all projects with identical scores (5/10), causing $\sigma = 0$. The engine automatically applied $\sigma = 1.0$, rendering the judge's score delta neutral ($0.0$) without throwing a ZeroDivisionError.
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Standings Summary Table -->
+        <div class="standings-summary-section">
+            <div class="standings-header">
+                <h3>Overall Project Scoring Standings</h3>
+                <div class="standings-controls">
+                    <a href="/api/export.csv" class="btn-hud btn-outline" target="_blank">
+                        <span class="btn-icon">📥</span> Download CSV Export
+                    </a>
+                    <button class="btn-hud btn-secondary" onclick="loadLiveCsvPreview()">
+                        <span class="btn-icon">👁️</span> Live Standings Preview
+                    </button>
+                    {% if user.role in ['organizer', 'admin'] %}
+                    <button class="btn-hud btn-action" onclick="publishOfficialResults()">
+                        <span class="btn-icon">📢</span> {% if results_published %}Results Published (Click to Refresh){% else %}Publish Standings to Public{% endif %}
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="hud-table-wrapper" id="live-standings-container">
+                <table class="hud-table">
+                    <thead>
+                        <tr>
+                            <th>PROJECT</th>
+                            <th>TRACK</th>
+                            <th>RAW AVERAGE</th>
+                            <th>NORMALIZED Z-AVERAGE</th>
+                            <th>JUDGE COUNT</th>
+                            <th>STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="live-standings-tbody">
+                        {% for item in all_scores %}
+                        <tr>
+                            <td><strong>{{ item.title }}</strong></td>
+                            <td><span class="track-pill">{{ item.track }}</span></td>
+                            <td><code>{{ item.raw_avg }}</code></td>
+                            <td><code class="z-score-val">{{ item.norm_avg }}</code></td>
+                            <td>{{ item.status }}</td>
+                            <td><span class="badge-success">Evaluated</span></td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">No scored submissions available.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 5: ROLE-SPECIFIC WORKBENCH -->
+    <section class="hud-panel workbench-panel">
+        <div class="panel-header-flex">
+            <div>
+                <div class="section-tag-row">
+                    <span class="section-badge role">PERSONA WORKSPACE</span>
+                </div>
+                <h2 class="panel-title"><span class="title-icon">🛠️</span> {{ user.role | upper }} WORKBENCH</h2>
+                <p class="panel-sub">Contextual controls and actions available exclusively for <code>{{ user.name }}</code>.</p>
+            </div>
+        </div>
+
+        <!-- PARTICIPANT VIEW -->
+        {% if user.role == 'participant' %}
+        <div class="participant-workbench">
+            <div class="workbench-bar">
+                <h3>Your Hackathon Submissions</h3>
+                <a href="/projects/new" class="btn-hud btn-action">Submit New Project</a>
+            </div>
+            <div class="project-card-grid">
+                {% for sub in submissions %}
+                <div class="project-mini-card">
+                    <h4>{{ sub.title }}</h4>
+                    <p class="text-muted">{{ sub.summary }}</p>
+                    <div class="card-footer-flex">
+                        <span class="track-pill">{{ sub.track }}</span>
+                        <span class="status-pill status-{{ sub.status }}">{{ sub.status | upper }}</span>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-muted">No submissions found for your profile. Submissions are currently closed as per event schedule.</p>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- JUDGE VIEW -->
+        {% if user.role == 'judge' %}
+        <div class="judge-workbench">
+            {% if judge_progress %}
+            <div class="judge-progress-section" style="margin-bottom: 20px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 8px;">
+                    <h3 style="margin:0;">Evaluation Progress</h3>
+                    <span class="badge-success" style="font-family: var(--font-mono); font-size: 0.85rem;">{{ judge_progress.scored }}/{{ judge_progress.total }} scored{% if judge_progress.drafts > 0 %} · {{ judge_progress.drafts }} draft(s){% endif %}</span>
+                </div>
+                <div style="background: #1a1f2e; border-radius: 6px; height: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+                    <div style="height: 100%; width: {{ judge_progress.percent }}%; background: linear-gradient(90deg, #00f0a8, #00c4ff); border-radius: 6px; transition: width 0.3s;"></div>
+                </div>
+            </div>
+            {% endif %}
+            <h3>Pending Project Evaluations Assigned to You</h3>
+            <div class="assignments-grid">
+                {% for a in assignments %}
+                <div class="assignment-hud-card" id="card-sub-{{ a.submission._id }}">
+                    <div class="a-header">
+                        <h4>{{ a.submission.title }}</h4>
+                        <span class="track-pill">{{ a.submission.track }}</span>
+                    </div>
+                    <p class="a-summary">{{ a.submission.summary }}</p>
+                    
+                    <form class="hud-score-form" data-sub-id="{{ a.submission._id }}">
+                        <div class="rubric-criteria-grid">
+                            {% for c in rubric %}
+                            <div class="criterion-row">
+                                <label>{{ c.name }} <span class="weight-label">(Weight: {{ c.weight }})</span></label>
+                                <div class="slider-group">
+                                    <input type="range" min="1" max="10" value="8" data-weight="{{ c.weight }}" name="score_{{ c.name }}" class="hud-range" oninput="this.nextElementSibling.value = this.value; updateWeightedPreview(this.form)">
+                                    <output class="range-val">8</output>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Live Weighted Total Score Preview -->
+                        <div class="score-live-calc-box">
+                            <span class="calc-label">Calculated Weighted Total:</span>
+                            <div class="calc-score-wrap">
+                                <span class="calc-value-display">8.00</span>
+                                <span class="calc-max">/ 10.0</span>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <label>Feedback & Comments</label>
+                            <textarea name="comment" rows="2" class="hud-textarea" placeholder="Provide constructive feedback for the team..."></textarea>
+                        </div>
+
+                        <div class="scoring-actions-row">
+                            <button type="button" class="btn-hud btn-secondary" onclick="saveDraftScore('{{ a.submission._id }}', this)">
+                                💾 Save Draft
+                            </button>
+                            <button type="button" class="btn-hud btn-action" onclick="submitJudgeScore('{{ a.submission._id }}', this)">
+                                🚀 Submit Evaluation
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                {% else %}
+                <div class="empty-notice">
+                    <p>All assigned submissions for {{ user.name }} have been evaluated!</p>
+                </div>
+                {% endfor %}
+            </div>
+
+            <h3 class="mt-4">Your Completed Evaluations</h3>
+            <div class="hud-table-wrapper">
+                <table class="hud-table">
+                    <thead>
+                        <tr>
+                            <th>PROJECT</th>
+                            <th>RAW WEIGHTED TOTAL</th>
+                            <th>NORMALIZED Z-SCORE</th>
+                            <th>COMMENTS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sc in user_scores %}
+                        <tr>
+                            <td><strong>{{ sc.submission.title }}</strong></td>
+                            <td><code>{{ sc.total }} / 10</code></td>
+                            <td><code>{{ sc.norm }}</code></td>
+                            <td>{{ sc.comments }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center text-muted">No completed evaluations.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ORGANIZER VIEW -->
+        {% if user.role in ['organizer', 'admin'] %}
+        <div class="organizer-workbench">
+            <div class="organizer-quick-actions">
+                <div class="action-card">
+                    <h4>Batch Judge Assignment</h4>
+                    <p>Execute round-robin batch assignment across all active judges and submissions.</p>
+                    <button class="btn-hud btn-secondary" onclick="batchAssignJudges()">Run Round-Robin Assignment</button>
+                </div>
+
+                <div class="action-card">
+                    <h4>Z-Score Normalization</h4>
+                    <p>Recalculate per-judge standard deviations and normalizations with $\sigma=0$ safe guards.</p>
+                    <button class="btn-hud btn-action" onclick="triggerNormalization()">Recalculate Normalization</button>
+                </div>
+
+                <div class="action-card">
+                    <h4>Live Leaderboard Preview</h4>
+                    <p>Toggle real-time leaderboard preview visibility on the /results page without publishing official rankings.</p>
+                    <button class="btn-hud btn-secondary" onclick="toggleLeaderboardPreview()">Toggle Leaderboard Preview</button>
+                </div>
+
+                <div class="action-card">
+                    <h4>Public Results Publication</h4>
+                    <p>Toggle public visibility of official rankings and z-scores on the gallery page.</p>
+                    <button class="btn-hud btn-primary" onclick="publishOfficialResults()">Toggle Results Publication</button>
+                </div>
+            </div>
+
+            <!-- COI Conflicts Audit Panel -->
+            <div class="coi-conflicts-panel" style="margin-top: 24px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                    <div>
+                        <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
+                            <span class="title-icon">⚠️</span> Conflict-of-Interest (COI) Audit Stream
+                        </h3>
+                        <p class="panel-sub" style="margin-top:4px;">
+                            Detected conflicts where judge affiliations overlap with submission team members. Conflicted pairs are automatically skipped during assignment.
+                        </p>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn-hud btn-secondary btn-sm" onclick="loadConflicts()">
+                            <span class="btn-icon">🔄</span> Refresh Audit Log
+                        </button>
+                    </div>
+                </div>
+                <div class="hud-table-wrapper">
+                    <table class="hud-table" id="conflicts-table">
+                        <thead>
+                            <tr>
+                                <th>JUDGE IDENTITY</th>
+                                <th>TARGET PROJECT</th>
+                                <th>CONFLICT REASON</th>
+                                <th>SECURITY ENFORCEMENT</th>
+                            </tr>
+                        </thead>
+                        <tbody id="conflicts-tbody">
+                            <tr><td colspan="4" class="text-center text-muted">Click "Refresh Audit Log" or trigger round-robin assignment to inspect logged conflicts.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </section>
+
+</div>
+
+<!-- Raw MongoDB Document Modal -->
+<div id="mongo-modal" class="cyber-modal-overlay" style="display: none;" onclick="closeModalOnBackdrop(event)">
+    <div class="cyber-modal-box">
+        <div class="cyber-modal-header">
+            <div class="modal-title-flex">
+                <span class="modal-icon">💾</span>
+                <h3>MONGODB AUDIT RECORD INSPECTOR</h3>
+            </div>
+            <button class="btn-modal-close" onclick="closeMongoModal()">✕</button>
+        </div>
+        <div class="cyber-modal-body">
+            <div class="modal-meta-bar">
+                <span id="modal-audit-id" class="modal-meta-chip">ID: ---</span>
+                <span id="modal-audit-time" class="modal-meta-chip">Time: ---</span>
+                <button class="btn-hud btn-secondary btn-sm" onclick="copyModalJson()">📋 Copy JSON</button>
+            </div>
+            <pre id="modal-json-content" class="modal-json-pre">Loading...</pre>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

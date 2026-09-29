@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="hud-container submit-canvas">
+    
+    <div class="submit-cyber-card">
+        <div class="submit-header">
+            <div class="hud-breadcrumb">
+                <span class="hud-label">DOGFOOD 2026</span>
+                <span class="hud-sep">//</span>
+                <span class="hud-active">ENTRY SUBMISSION</span>
+            </div>
+            <h2>SUBMIT HACKATHON PROJECT</h2>
+            <p class="submit-sub">Register your team project for evaluation and judging review.</p>
+        </div>
+
+        {% if error %}
+        <div class="hud-toast error" style="margin-bottom: 20px;">
+            <span class="toast-icon">❌</span>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        <div class="deadline-notice-box">
+            <span class="notice-icon">⚠️</span>
+            <div class="notice-content">
+                <strong>SUBMISSION DEADLINE ENFORCEMENT:</strong>
+                <p>Submissions strictly close at the scheduled deadline. Late submissions are automatically rejected with HTTP 403 Forbidden.</p>
+            </div>
+        </div>
+
+        <form id="submission-form" method="POST" action="/projects/new" class="cyber-form">
+            <div class="form-group-cyber">
+                <label for="title">PROJECT TITLE *</label>
+                <input type="text" id="title" name="title" class="cyber-input" placeholder="e.g. HackTrack Pro" required>
+            </div>
+
+            <div class="form-group-cyber">
+                <label for="track">TECHNICAL TRACK *</label>
+                <select id="track" name="track" class="cyber-select" required>
+                    <option value="">Select track...</option>
+                    <option value="Web Platform">Web Platform</option>
+                    <option value="AI/ML">AI/ML</option>
+                    <option value="Developer Tools">Developer Tools</option>
+                </select>
+            </div>
+
+            <div class="form-group-cyber">
+                <label for="summary">ELEVATOR PITCH / SHORT SUMMARY *</label>
+                <input type="text" id="summary" name="summary" class="cyber-input" placeholder="One-sentence description of the project" required>
+            </div>
+
+            <div class="form-group-cyber">
+                <label for="description">FULL DESCRIPTION *</label>
+                <textarea id="description" name="description" rows="4" class="cyber-textarea" placeholder="Detailed architectural breakdown, technologies used, and features built..." required></textarea>
+            </div>
+
+            <div class="form-group-cyber">
+                <label for="team_members">TEAM MEMBERS (COMMA-SEPARATED)</label>
+                <input type="text" id="team_members" name="team_members" class="cyber-input" placeholder="e.g. Participant Pat, Participant Quinn">
+                <span class="field-hint" style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; display:block;">Used for conflict-of-interest screening during judge assignment.</span>
+            </div>
+
+            <div class="form-row-2col">
+                <div class="form-group-cyber">
+                    <label for="repoUrl">SOURCE CODE REPOSITORY (URL)</label>
+                    <input type="url" id="repoUrl" name="repoUrl" class="cyber-input" placeholder="https://github.com/...">
+                </div>
+
+                <div class="form-group-cyber">
+                    <label for="demoUrl">LIVE DEPLOYMENT / DEMO (URL)</label>
+                    <input type="url" id="demoUrl" name="demoUrl" class="cyber-input" placeholder="https://...">
+                </div>
+            </div>
+
+            <input type="hidden" name="eventId" value="1">
+
+            <div class="form-actions-bar">
+                <button type="submit" class="btn-hud btn-action btn-xl">
+                    <span class="btn-icon">🚀</span> SUBMIT PROJECT ENTRY
+                </button>
+                <a href="/projects" class="btn-hud btn-outline btn-xl">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<style>
+.submit-canvas {
+    display: flex;
+    justify-content: center;
+    padding: 30px 20px 60px;
+}
+
+.submit-cyber-card {
+    background: #0f131c;
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
+    padding: 36px 40px;
+    width: 100%;
+    max-width: 760px;
+}
+
+.submit-header {
+    margin-bottom: 24px;
+}
+
+.submit-header h2 {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    color: #fff;
+    margin: 4px 0 6px;
+}
+
+.submit-sub {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+}
+
+.deadline-notice-box {
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.notice-icon { font-size: 1.4rem; }
+.notice-content strong { color: var(--accent-amber); font-size: 0.76rem; font-family: var(--font-mono); display: block; margin-bottom: 2px; }
+.notice-content p { color: var(--text-secondary); font-size: 0.8rem; margin: 0; }
+
+.cyber-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.cyber-textarea {
+    width: 100%;
+    background: #090d16;
+    border: 1px solid var(--border-subtle);
+    color: #fff;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-sans);
+    font-size: 0.88rem;
+    outline: none;
+    resize: vertical;
+    transition: all 0.2s;
+}
+.cyber-textarea:focus {
+    border-color: var(--accent-emerald);
+    box-shadow: 0 0 12px rgba(0, 240, 168, 0.2);
+}
+
+.form-row-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+@media (max-width: 640px) {
+    .form-row-2col { grid-template-columns: 1fr; }
+}
+
+.form-actions-bar {
+    display: flex;
+    gap: 14px;
+    margin-top: 12px;
+}
+</style>
+{% endblock %}

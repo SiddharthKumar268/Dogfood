@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="hud-container login-container">
+    <div class="login-cyber-card">
+        <div class="login-header">
+            <span class="login-badge"><span class="dot pulse"></span> IDENTITY GATEWAY</span>
+            <h2>AUTHENTICATION PORTAL</h2>
+            <p class="login-sub">Enter credentials or select an instant test persona below to access Mission Control.</p>
+        </div>
+
+        <div id="login-error" class="hud-toast error" style="display: none; margin-bottom: 16px;"></div>
+        
+        <!-- Standard Login Form -->
+        <form id="login-form" class="cyber-login-form">
+            <div class="form-group-cyber">
+                <label for="email">OPERATOR EMAIL</label>
+                <input type="email" id="email" name="email" class="cyber-input" placeholder="organizer@dogfood.dev" required>
+            </div>
+            
+            <div class="form-group-cyber">
+                <label for="password">ACCESS PASSWORD</label>
+                <input type="password" id="password" name="password" class="cyber-input" placeholder="••••••••" required>
+            </div>
+            
+            <button type="submit" class="btn-hud btn-action w-100" style="margin-top: 10px;">
+                <span class="btn-icon">🔓</span> AUTHENTICATE & ENTER
+            </button>
+        </form>
+
+        <div class="login-divider">
+            <span>OR DOCK INSTANTLY AS TEST PERSONA</span>
+        </div>
+
+        <!-- 1-Click Fast Persona Switch -->
+        <div class="fast-persona-grid">
+            <button type="button" class="btn-fast-persona" onclick="quickLogin('organizer@dogfood.dev', 'org123')">
+                <div class="fast-icon">👑</div>
+                <div class="fast-info">
+                    <span class="fast-name">Organizer One</span>
+                    <span class="fast-role">Full Admin & CSV Export</span>
+                </div>
+            </button>
+
+            <button type="button" class="btn-fast-persona" onclick="quickLogin('judge_a@dogfood.dev', 'judge123')">
+                <div class="fast-icon">⚖️</div>
+                <div class="fast-info">
+                    <span class="fast-name">Judge Alpha</span>
+                    <span class="fast-role">Normal Variance Scores</span>
+                </div>
+            </button>
+
+            <button type="button" class="btn-fast-persona" onclick="quickLogin('judge_b@dogfood.dev', 'judge456')">
+                <div class="fast-icon">⚖️</div>
+                <div class="fast-info">
+                    <span class="fast-name">Judge Beta</span>
+                    <span class="fast-role">Uniform 5s (&sigma;=0 Tester)</span>
+                </div>
+            </button>
+
+            <button type="button" class="btn-fast-persona" onclick="quickLogin('participant@dogfood.dev', 'part123')">
+                <div class="fast-icon">💻</div>
+                <div class="fast-info">
+                    <span class="fast-name">Participant Pat</span>
+                    <span class="fast-role">Team Submissions</span>
+                </div>
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 60px 20px;
+}
+
+.login-cyber-card {
+    background: #0f131c;
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
+    padding: 36px;
+    width: 100%;
+    max-width: 480px;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.login-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    margin-bottom: 12px;
+}
+
+.login-header h2 {
+    font-family: var(--font-mono);
+    font-size: 1.4rem;
+    color: #fff;
+    margin-bottom: 6px;
+}
+
+.login-sub {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.cyber-login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.cyber-input {
+    width: 100%;
+    background: #090d16;
+    border: 1px solid var(--border-subtle);
+    color: #fff;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    outline: none;
+    transition: all 0.2s ease;
+}
+.cyber-input:focus {
+    border-color: var(--accent-emerald);
+    box-shadow: 0 0 12px rgba(0, 240, 168, 0.2);
+}
+
+.login-divider {
+    text-align: center;
+    position: relative;
+    margin: 28px 0 20px;
+}
+.login-divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--border-subtle);
+}
+.login-divider span {
+    position: relative;
+    background: #0f131c;
+    padding: 0 10px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.fast-persona-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.btn-fast-persona {
+    background: #090d16;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+}
+.btn-fast-persona:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--accent-cyan);
+    transform: translateY(-2px);
+}
+
+.fast-icon { font-size: 1.3rem; }
+.fast-info { display: flex; flex-direction: column; }
+.fast-name { font-size: 0.8rem; font-weight: 700; color: #fff; font-family: var(--font-mono); }
+.fast-role { font-size: 0.68rem; color: var(--text-muted); }
+</style>
+
+<script>
+async function quickLogin(email, password) {
+    document.getElementById('email').value = email;
+    document.getElementById('password').value = password;
+    document.getElementById('login-form').dispatchEvent(new Event('submit'));
+}
+
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const errBox = document.getElementById('login-error');
+    errBox.style.display = 'none';
+
+    try {
+        const resp = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+            window.location.href = '/dashboard';
+        } else {
+            errBox.textContent = data.error || 'Authentication failed';
+            errBox.style.display = 'block';
+        }
+    } catch (err) {
+        errBox.textContent = 'Network error during login';
+        errBox.style.display = 'block';
+    }
+});
+</script>
+{% endblock %}

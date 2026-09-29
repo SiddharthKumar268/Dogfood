@@ -1,0 +1,17 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8088:8088"
+    depends_on:
+      - db
+    environment:
+      - MONGO_URI=mongodb://db:27017/dogfood
+      - PORT=8088
+      - SECRET_KEY=dogfood-secret-2026
+  db:
+    image: mongo:7
+    volumes:
+      - mongo_data:/data/db
+volumes:
+  mongo_data:

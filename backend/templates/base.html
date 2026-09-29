@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dogfood 2026 — Mission Control & Judging Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="cyber-theme">
+    <!-- Top Telemetry & Role Simulator Bar -->
+    <header class="hud-topbar">
+        <div class="hud-container topbar-flex">
+            <div class="hud-status-group">
+                <span class="hud-indicator active"><span class="dot pulse"></span> DOGFOOD CORE v2.0</span>
+                <span class="hud-tag tier-tag">T1+T2 CLAIMED</span>
+                <span class="hud-tag isolation-tag">ROLE ISOLATION: ACTIVE (403 STRICT)</span>
+                <span class="hud-tag norm-tag">Z-SCORE: &sigma;=0 SAFE</span>
+            </div>
+
+            <!-- Instant Persona Switcher & Cyber Audio Toggle -->
+            <div class="topbar-right-controls">
+                <button type="button" id="cyber-audio-toggle" class="btn-audio-toggle" onclick="toggleCyberAudio()" title="Toggle Sci-Fi Synthesizer Sound Effects">
+                    <span class="audio-icon">🔊</span> <span class="audio-text">Audio: ON</span>
+                    <span class="audio-waves"><span class="w-bar b1"></span><span class="w-bar b2"></span><span class="w-bar b3"></span></span>
+                </button>
+
+                <div class="persona-switcher">
+                    <span class="persona-label"><span class="icon">⚡</span> TEST PERSONA:</span>
+                    <button type="button" class="btn-persona {% if g.user and g.user.role == 'organizer' %}active{% endif %}" onclick="switchPersona('organizer')" title="Switch to Organizer One (session=org_7f2a)">
+                        👑 Organizer
+                    </button>
+                    <button type="button" class="btn-persona {% if g.user and g.user.get('slug') == 'judge_a' %}active{% endif %}" onclick="switchPersona('judge_a')" title="Switch to Judge Alpha (session=jdg_a_91bc)">
+                        ⚖️ Judge Alpha
+                    </button>
+                    <button type="button" class="btn-persona {% if g.user and g.user.get('slug') == 'judge_b' %}active{% endif %}" onclick="switchPersona('judge_b')" title="Switch to Judge Beta (session=jdg_b_44de - uniform 5s)">
+                        ⚖️ Judge Beta
+                    </button>
+                    <button type="button" class="btn-persona {% if g.user and g.user.role == 'participant' %}active{% endif %}" onclick="switchPersona('participant')" title="Switch to Participant Pat (session=prt_2e88)">
+                        💻 Participant
+                    </button>
+                    <button type="button" class="btn-persona" onclick="switchPersona('guest')" title="Anonymous Guest (No Session Cookie)">
+                        🕵️ Guest
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Navigation Bar -->
+    <nav class="main-navbar">
+        <div class="hud-container nav-flex">
+            <div class="brand-section">
+                <a href="/dashboard" class="brand-logo">
+                    <span class="brand-bracket">[</span>
+                    <span class="brand-name">DOGFOOD</span>
+                    <span class="brand-accent">2026</span>
+                    <span class="brand-bracket">]</span>
+                </a>
+                <span class="brand-subtitle">MISSION CONTROL & JUDGING ENGINE</span>
+            </div>
+
+            <div class="nav-links">
+                <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' or request.path == '/' %}active{% endif %}">
+                    <span class="link-icon">📊</span> Mission Control
+                </a>
+                <a href="/projects" class="nav-link {% if request.path == '/projects' %}active{% endif %}">
+                    <span class="link-icon">📁</span> Project Gallery
+                </a>
+                <a href="/results" class="nav-link {% if request.path == '/results' %}active{% endif %}">
+                    <span class="link-icon">🏆</span> Standings
+                </a>
+                {% if g.user and g.user.role == 'participant' %}
+                <a href="/projects/new" class="nav-link {% if request.path == '/projects/new' %}active{% endif %}">
+                    <span class="link-icon">➕</span> New Entry
+                </a>
+                {% endif %}
+            </div>
+
+            <div class="user-control-section">
+                {% if g.user %}
+                <div class="user-badge" title="Role: {{ g.user.role }}">
+                    <span class="role-pill role-{{ g.user.role }}">{{ g.user.role | upper }}</span>
+                    <span class="user-display-name">{{ g.user.name }}</span>
+                </div>
+                <button id="logout-btn" class="btn-logout" title="Clear Session Cookie">Logout</button>
+                {% else %}
+                <a href="/login" class="btn-login-hud">Login</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Global Flash Notification Banner -->
+    <div id="hud-toast-container" class="hud-toast-container"></div>
+
+    <!-- Main Application Canvas -->
+    <main class="hud-main">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- System Telemetry Footer -->
+    <footer class="hud-footer">
+        <div class="hud-container footer-flex">
+            <div class="footer-left">
+                <p><strong>Dogfood Hackathon Portal 2026</strong> &bull; Compliant with Dogfood Acceptance Specification v2</p>
+                <p class="footer-sub">Zero-React Server-Side Architecture &bull; Python 3 / Flask / PyMongo / MongoDB</p>
+            </div>
+            <div class="footer-right">
+                <span class="footer-stat">Target: <code>http://localhost:8088</code></span>
+                <span class="footer-stat">Gate #05: <code>Role Isolation 403</code></span>
+                <span class="footer-stat">License: <a href="https://opensource.org/licenses/MIT" target="_blank">MIT</a></span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

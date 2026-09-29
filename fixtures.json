@@ -1,0 +1,178 @@
+{
+  "users": [
+    {
+      "name": "Organizer One",
+      "email": "organizer@dogfood.dev",
+      "password": "org123",
+      "role": "organizer",
+      "sessionToken": "org_7f2a"
+    },
+    {
+      "name": "Judge Alpha",
+      "email": "judge_a@dogfood.dev",
+      "password": "judge123",
+      "role": "judge",
+      "affiliations": ["Judge Alpha", "Alpha Corp"],
+      "sessionToken": "jdg_a_91bc"
+    },
+    {
+      "name": "Judge Beta",
+      "email": "judge_b@dogfood.dev",
+      "password": "judge456",
+      "role": "judge",
+      "affiliations": ["Judge Beta", "Beta Labs"],
+      "sessionToken": "jdg_b_44de"
+    },
+    {
+      "name": "Participant Pat",
+      "email": "participant@dogfood.dev",
+      "password": "part123",
+      "role": "participant",
+      "sessionToken": "prt_2e88"
+    },
+    {
+      "name": "Participant Quinn",
+      "email": "participant2@dogfood.dev",
+      "password": "part456",
+      "role": "participant",
+      "sessionToken": null
+    }
+  ],
+  "events": [
+    {
+      "name": "Dogfood Hackathon 2026",
+      "description": "Annual hackathon to build the best developer tools",
+      "tracks": ["Web Platform", "AI/ML", "Developer Tools"],
+      "prizes": [
+        { "place": 1, "amount": 5000 },
+        { "place": 2, "amount": 2500 },
+        { "place": 3, "amount": 1000 }
+      ],
+      "startDate": "2026-09-20T00:00:00Z",
+      "endDate": "2026-09-23T00:00:00Z",
+      "submissionsClose": "2026-09-22T23:59:59Z"
+    }
+  ],
+  "teams": [
+    {
+      "name": "Team Alpha",
+      "memberEmails": ["participant@dogfood.dev"],
+      "inviteCode": "ALPHA2026"
+    },
+    {
+      "name": "Team Beta",
+      "memberEmails": ["participant2@dogfood.dev"],
+      "inviteCode": "BETA2026"
+    }
+  ],
+  "submissions": [
+    {
+      "title": "HackTrack Pro",
+      "summary": "Real-time hackathon management dashboard",
+      "description": "A comprehensive platform for organizing and tracking hackathon progress with real-time updates.",
+      "repoUrl": "https://github.com/example/hacktrack-pro",
+      "demoUrl": "https://hacktrack-pro.example.com",
+      "track": "Web Platform",
+      "team_members": ["Participant Pat", "Judge Alpha"],
+      "teamName": "Team Alpha",
+      "status": "submitted"
+    },
+    {
+      "title": "CodeMentor AI",
+      "summary": "AI-powered code review assistant",
+      "description": "An intelligent code review tool using ML for contextual feedback.",
+      "repoUrl": "https://github.com/example/codementor-ai",
+      "demoUrl": "https://codementor-ai.example.com",
+      "track": "AI/ML",
+      "team_members": ["Participant Quinn"],
+      "teamName": "Team Beta",
+      "status": "submitted"
+    },
+    {
+      "title": "DevFlow CLI",
+      "summary": "CLI development workflow optimizer",
+      "description": "A CLI tool that streamlines common development workflows.",
+      "repoUrl": "https://github.com/example/devflow-cli",
+      "demoUrl": null,
+      "track": "Developer Tools",
+      "team_members": ["Participant Pat"],
+      "teamName": "Team Alpha",
+      "status": "submitted"
+    },
+    {
+      "title": "HackTrack Pro",
+      "summary": "Duplicate submission - edge case",
+      "description": "Deliberately duplicate submission for edge case testing.",
+      "repoUrl": "https://github.com/example/hacktrack-pro",
+      "demoUrl": "https://hacktrack-pro.example.com",
+      "track": "Web Platform",
+      "team_members": ["Participant Pat"],
+      "teamName": "Team Alpha",
+      "status": "draft"
+    }
+  ],
+  "rubric": {
+    "criteria": [
+      { "name": "Innovation", "weight": 0.3, "maxScore": 10 },
+      { "name": "Technical Complexity", "weight": 0.3, "maxScore": 10 },
+      { "name": "User Experience", "weight": 0.2, "maxScore": 10 },
+      { "name": "Presentation", "weight": 0.2, "maxScore": 10 }
+    ]
+  },
+  "scores": {
+    "judge_a": [
+      {
+        "submissionTitle": "HackTrack Pro",
+        "criteriaScores": [
+          { "criterionName": "Innovation", "score": 8 },
+          { "criterionName": "Technical Complexity", "score": 7 },
+          { "criterionName": "User Experience", "score": 9 },
+          { "criterionName": "Presentation", "score": 8 }
+        ],
+        "comment": "Solid project with good UX"
+      },
+      {
+        "submissionTitle": "CodeMentor AI",
+        "criteriaScores": [
+          { "criterionName": "Innovation", "score": 9 },
+          { "criterionName": "Technical Complexity", "score": 9 },
+          { "criterionName": "User Experience", "score": 7 },
+          { "criterionName": "Presentation", "score": 8 }
+        ],
+        "comment": "Impressive AI integration"
+      },
+      {
+        "submissionTitle": "DevFlow CLI",
+        "criteriaScores": [
+          { "criterionName": "Innovation", "score": 6 },
+          { "criterionName": "Technical Complexity", "score": 7 },
+          { "criterionName": "User Experience", "score": 6 },
+          { "criterionName": "Presentation", "score": 5 }
+        ],
+        "comment": "Functional but needs polish"
+      }
+    ],
+    "judge_b": [
+      {
+        "submissionTitle": "HackTrack Pro",
+        "criteriaScores": [
+          { "criterionName": "Innovation", "score": 5 },
+          { "criterionName": "Technical Complexity", "score": 5 },
+          { "criterionName": "User Experience", "score": 5 },
+          { "criterionName": "Presentation", "score": 5 }
+        ],
+        "comment": "Average across the board"
+      },
+      {
+        "submissionTitle": "CodeMentor AI",
+        "criteriaScores": [
+          { "criterionName": "Innovation", "score": 5 },
+          { "criterionName": "Technical Complexity", "score": 5 },
+          { "criterionName": "User Experience", "score": 5 },
+          { "criterionName": "Presentation", "score": 5 }
+        ],
+        "comment": "Meets expectations"
+      }
+    ]
+  }
+}

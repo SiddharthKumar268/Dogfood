@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="hud-container gallery-canvas">
+    
+    <!-- Gallery Hero Header -->
+    <section class="gallery-hero-card">
+        <div class="gallery-hero-left">
+            <div class="hud-breadcrumb">
+                <span class="hud-label">DOGFOOD 2026</span>
+                <span class="hud-sep">//</span>
+                <span class="hud-active">PUBLIC PROJECT GALLERY</span>
+            </div>
+            <h1 class="hud-title">PROJECT DIRECTORY</h1>
+            <p class="hud-description">
+                Browse verified hackathon projects built for Dogfood 2026. Server-side rendered Jinja2 templates ensure instant accessibility and search indexing.
+            </p>
+        </div>
+
+        <div class="gallery-hero-right">
+            <div class="gallery-stat-box">
+                <span class="gallery-stat-number" id="project-count-badge">{{ submissions|length }}</span>
+                <span class="gallery-stat-label">Verified Projects</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Filter & Search Controls Bar -->
+    <div class="gallery-toolbar">
+        <div class="toolbar-search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="project-search" class="cyber-search-input" placeholder="Search projects by title, summary, or description..." oninput="filterGalleryProjects()">
+            <button type="button" id="clear-search-btn" class="btn-clear-search" onclick="clearGallerySearch()" style="display:none;" title="Clear search">✕</button>
+        </div>
+
+        <div class="filter-controls-group">
+            <span class="filter-label">Track:</span>
+            <form method="GET" action="/projects" id="track-filter-form" style="display:inline;margin:0;">
+                <select name="track" id="track-filter" class="cyber-select-filter" onchange="onTrackFilterChange(this)">
+                    <option value="">All Tracks ({{ tracks|length }})</option>
+                    {% for t in tracks %}
+                    <option value="{{ t }}" {% if active_track == t %}selected{% endif %}>{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+
+        <div class="view-toggle-group">
+            <button type="button" class="btn-view-toggle active" id="view-grid-btn" onclick="setGalleryView('grid')" title="Grid View">🔲 Grid</button>
+            <button type="button" class="btn-view-toggle" id="view-list-btn" onclick="setGalleryView('list')" title="List View">☰ List</button>
+        </div>
+
+        <div class="toolbar-actions">
+            {% if g.user and g.user.role == 'participant' %}
+            <a href="/projects/new" class="btn-hud btn-action">
+                <span class="btn-icon">➕</span> New Entry
+            </a>
+            {% endif %}
+            <a href="/dashboard" class="btn-hud btn-secondary">
+                <span class="btn-icon">📊</span> Mission Control
+            </a>
+        </div>
+    </div>
+
+    <!-- Active Filter Chips Bar -->
+    <div id="active-filter-chips" class="active-filter-chips" style="display: none; margin-bottom: 16px;">
+        <span class="chips-label">ACTIVE FILTERS:</span>
+        <span id="active-track-chip" class="filter-chip" style="display:none;"></span>
+        <span id="active-search-chip" class="filter-chip" style="display:none;"></span>
+        <button type="button" class="btn-reset-filters" onclick="resetGalleryFilters()">Reset All</button>
+    </div>
+
+    <!-- Project Cards Grid -->
+    <div class="project-grid" id="project-grid-container">
+        {% for sub in submissions %}
+        <div class="project-card" data-track="{{ sub.track }}" data-title="{{ sub.title|lower }}" data-summary="{{ sub.summary|lower }}" data-desc="{{ (sub.description or '')|lower }}">
+            <div class="project-card-header">
+                <span class="track-badge track-{{ sub.track|lower|replace(' ', '-')|replace('/', '-') }}">{{ sub.track }}</span>
+                <span class="project-status-tag">{{ sub.status|upper }}</span>
+            </div>
+
+            <h3 class="project-title">{{ sub.title }}</h3>
+            <p class="project-summary">{{ sub.summary }}</p>
+
+            {% if sub.description %}
+            <p class="project-description-preview">{{ sub.description }}</p>
+            {% endif %}
+
+            {% if sub.team_members %}
+            <div class="project-team-members">
+                <span class="team-label">Team:</span>
+                {% for m in sub.team_members %}
+                <span class="member-chip" title="Team Member">👤 {{ m }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="project-links">
+                {% if sub.repoUrl %}
+                <a href="{{ sub.repoUrl }}" class="btn btn-secondary btn-sm" target="_blank" rel="noopener">
+                    <span class="btn-icon">📦</span> Code
+                </a>
+                <button type="button" class="btn btn-outline btn-sm btn-icon-only" onclick="copyProjectLink('{{ sub.repoUrl }}', this)" title="Copy Repo URL">
+                    📋
+                </button>
+                {% endif %}
+                {% if sub.demoUrl %}
+                <a href="{{ sub.demoUrl }}" class="btn btn-primary btn-sm" target="_blank" rel="noopener">
+                    <span class="btn-icon">🚀</span> Live Demo
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-gallery-state">
+            <span class="empty-icon">📂</span>
+            <h3>No Submissions Available</h3>
+            <p>No project submissions matching current criteria were found.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<script>
+function onTrackFilterChange(selectEl) {
+    // If JS is active, filter client-side smoothly and sync URL without full reload
+    const val = selectEl.value;
+    const url = new URL(window.location.href);
+    if (val) {
+        url.searchParams.set('track', val);
+    } else {
+        url.searchParams.delete('track');
+    }
+    window.history.pushState({}, '', url);
+    filterGalleryProjects();
+}
+
+function filterGalleryProjects() {
+    const searchInput = document.getElementById('project-search');
+    const trackSelect = document.getElementById('track-filter');
+    const clearBtn = document.getElementById('clear-search-btn');
+    const chipsBar = document.getElementById('active-filter-chips');
+    const trackChip = document.getElementById('active-track-chip');
+    const searchChip = document.getElementById('active-search-chip');
+    
+    const searchVal = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    const trackVal = trackSelect ? trackSelect.value : '';
+    const cards = document.querySelectorAll('.project-card');
+    let visibleCount = 0;
+
+    if (clearBtn) {
+        clearBtn.style.display = searchVal ? 'inline-block' : 'none';
+    }
+
+    cards.forEach(card => {
+        const cardTrack = card.getAttribute('data-track') || '';
+        const cardTitle = card.getAttribute('data-title') || '';
+        const cardSummary = card.getAttribute('data-summary') || '';
+        const cardDesc = card.getAttribute('data-desc') || '';
+
+        const matchesTrack = !trackVal || cardTrack.toLowerCase() === trackVal.toLowerCase();
+        const matchesSearch = !searchVal || cardTitle.includes(searchVal) || cardSummary.includes(searchVal) || cardDesc.includes(searchVal);
+
+        if (matchesTrack && matchesSearch) {
+            card.style.display = 'flex';
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    const badge = document.getElementById('project-count-badge');
+    if (badge) badge.textContent = visibleCount;
+
+    // Update filter chips bar
+    let hasFilters = false;
+    if (trackChip && trackVal) {
+        trackChip.textContent = `Track: ${trackVal} ✕`;
+        trackChip.style.display = 'inline-flex';
+        trackChip.onclick = () => {
+            trackSelect.value = '';
+            onTrackFilterChange(trackSelect);
+        };
+        hasFilters = true;
+    } else if (trackChip) {
+        trackChip.style.display = 'none';
+    }
+
+    if (searchChip && searchVal) {
+        searchChip.textContent = `Search: "${searchVal}" ✕`;
+        searchChip.style.display = 'inline-flex';
+        searchChip.onclick = clearGallerySearch;
+        hasFilters = true;
+    } else if (searchChip) {
+        searchChip.style.display = 'none';
+    }
+
+    if (chipsBar) {
+        chipsBar.style.display = hasFilters ? 'flex' : 'none';
+    }
+}
+
+function clearGallerySearch() {
+    const searchInput = document.getElementById('project-search');
+    if (searchInput) {
+        searchInput.value = '';
+        filterGalleryProjects();
+    }
+}
+
+function resetGalleryFilters() {
+    const searchInput = document.getElementById('project-search');
+    const trackSelect = document.getElementById('track-filter');
+    if (searchInput) searchInput.value = '';
+    if (trackSelect) {
+        trackSelect.value = '';
+        onTrackFilterChange(trackSelect);
+    }
+    filterGalleryProjects();
+}
+
+function setGalleryView(mode) {
+    const container = document.getElementById('project-grid-container');
+    const gridBtn = document.getElementById('view-grid-btn');
+    const listBtn = document.getElementById('view-list-btn');
+    if (!container) return;
+
+    if (mode === 'list') {
+        container.classList.add('list-view');
+        if (listBtn) listBtn.classList.add('active');
+        if (gridBtn) gridBtn.classList.remove('active');
+        localStorage.setItem('gallery_view_mode', 'list');
+    } else {
+        container.classList.remove('list-view');
+        if (gridBtn) gridBtn.classList.add('active');
+        if (listBtn) listBtn.classList.remove('active');
+        localStorage.setItem('gallery_view_mode', 'grid');
+    }
+}
+
+function copyProjectLink(url, btn) {
+    if (!url) return;
+    navigator.clipboard.writeText(url);
+    const original = btn.textContent;
+    btn.textContent = '✅';
+    showToast('Repository URL copied to clipboard!', 'success');
+    setTimeout(() => btn.textContent = original, 1800);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const savedView = localStorage.getItem('gallery_view_mode');
+    if (savedView === 'list') {
+        setGalleryView('list');
+    }
+    // Initialize filter state from initial URL/selection
+    filterGalleryProjects();
+});
+</script>
+{% endblock %}

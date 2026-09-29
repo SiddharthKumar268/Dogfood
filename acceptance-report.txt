@@ -1,0 +1,24 @@
+==================================================
+      DOGFOOD 2026 ACCEPTANCE CHECKER REPORT     
+==================================================
+Target Portal: http://localhost:8088
+
+[TIER 1 CHECKS]
+  [PASS] T1.1: GET gallery (no auth) -> Expected: 200, Got: 200
+  [PASS] T1.2: Gallery body contains 'HackTrack Pro' -> Found: True
+  [PASS] T1.3: POST submit (participant, event closed) -> Expected: 4xx, Got: 403
+
+[TIER 2 CHECKS]
+  [PASS] T2.1: GET judge_scores as judge_a -> Expected: 200, Got: 200
+  [PASS] T2.2: GET peer_scores as judge_b (isolation) -> Expected: 401/403, Got: 403
+  [PASS] T2.3: GET judge_scores as participant -> Expected: 401/403, Got: 403
+  [PASS] T2.4: GET csv_export as organizer -> Expected: 200 with CSV, Got: 200 (comma: True)
+
+==================================================
+                    SUMMARY                       
+==================================================
+Total Checks: 7/7 PASSED
+Tier 1 (Core):     VERIFIED
+Tier 2 (Judging):  VERIFIED
+==================================================
+ALL 7 ACCEPTANCE CHECKS PASSED SUCCESSFULLY!

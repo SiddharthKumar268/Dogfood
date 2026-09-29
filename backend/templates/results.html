@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="hud-container results-canvas">
+    
+    <!-- Results Header -->
+    <section class="results-hero-card">
+        <div class="hero-left">
+            <div class="hud-breadcrumb">
+                <span class="hud-label">DOGFOOD 2026</span>
+                <span class="hud-sep">//</span>
+                <span class="hud-active">OFFICIAL RANKINGS</span>
+            </div>
+            <h1 class="hud-title">STANDINGS & RESULTS</h1>
+            <p class="hud-description">
+                Final hackathon rankings computed via fair Z-Score normalization across all evaluation batches.
+            </p>
+        </div>
+
+        <div class="hero-right">
+            <div class="results-status-badge {% if is_published %}published{% elif is_preview %}preview{% else %}draft{% endif %}">
+                <span class="dot pulse"></span>
+                <span>STATUS: {% if is_published %}PUBLISHED TO PUBLIC{% elif is_preview %}LIVE PREVIEW (UNRANKED){% else %}UNPUBLISHED (PREVIEW MODE){% endif %}</span>
+            </div>
+        </div>
+    </section>
+
+    {% if not is_published %}
+    <div class="results-draft-alert">
+        <div class="alert-icon">⚠️</div>
+        <div class="alert-body">
+            <h4>Standings Not Yet Published</h4>
+            <p>Official results have not been finalized by the event organizers. Log in as an Organizer to publish standings or review scores in Mission Control.</p>
+            <div class="alert-actions">
+                <a href="/dashboard" class="btn-hud btn-action btn-sm">Open Mission Control</a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if is_preview and not is_published %}
+    <div class="results-draft-alert" style="border-color: rgba(0, 200, 255, 0.3); background: rgba(0, 200, 255, 0.05);">
+        <div class="alert-icon">👁️</div>
+        <div class="alert-body">
+            <h4>LIVE PREVIEW — Unranked Standings</h4>
+            <p>These standings are a real-time preview and have NOT been officially published. Rankings may change before final publication.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Top 3 Podium (if results available) -->
+    {% if results and results|length >= 3 %}
+    <div class="podium-section">
+        <div class="podium-headline-bar">
+            <span class="podium-eyebrow"><span class="title-icon">✨</span> TOP HONORS & AWARDS</span>
+            <button type="button" class="btn-celebrate" onclick="triggerConfetti()" title="Celebrate Winners">🎉 Celebrate</button>
+        </div>
+        <div class="podium-grid">
+            <!-- 2nd Place -->
+            <div class="podium-card silver">
+                <div class="podium-rank-badge">🥈 2ND PLACE</div>
+                <h3 class="podium-title">{{ results[1].title }}</h3>
+                <span class="track-badge">{{ results[1].track }}</span>
+                <div class="podium-score-row">
+                    <div class="podium-metric">
+                        <span class="p-label">Z-Score:</span>
+                        <span class="p-val">{{ results[1].normalizedAvg|round(3) }}</span>
+                    </div>
+                    <div class="podium-metric">
+                        <span class="p-label">Raw Avg:</span>
+                        <span class="p-val">{{ results[1].rawAvg|round(2) }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1st Place -->
+            <div class="podium-card gold">
+                <div class="podium-crown">👑 GRAND CHAMPION</div>
+                <div class="podium-rank-badge">🥇 1ST PLACE</div>
+                <h3 class="podium-title">{{ results[0].title }}</h3>
+                <span class="track-badge track-web-platform">{{ results[0].track }}</span>
+                <div class="podium-score-row">
+                    <div class="podium-metric">
+                        <span class="p-label">Z-Score:</span>
+                        <span class="p-val">{{ results[0].normalizedAvg|round(3) }}</span>
+                    </div>
+                    <div class="podium-metric">
+                        <span class="p-label">Raw Avg:</span>
+                        <span class="p-val">{{ results[0].rawAvg|round(2) }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3rd Place -->
+            <div class="podium-card bronze">
+                <div class="podium-rank-badge">🥉 3RD PLACE</div>
+                <h3 class="podium-title">{{ results[2].title }}</h3>
+                <span class="track-badge">{{ results[2].track }}</span>
+                <div class="podium-score-row">
+                    <div class="podium-metric">
+                        <span class="p-label">Z-Score:</span>
+                        <span class="p-val">{{ results[2].normalizedAvg|round(3) }}</span>
+                    </div>
+                    <div class="podium-metric">
+                        <span class="p-label">Raw Avg:</span>
+                        <span class="p-val">{{ results[2].rawAvg|round(2) }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Full Rankings Table -->
+    <div class="hud-panel standings-table-panel">
+        <div class="panel-header-flex">
+            <div>
+                <h2 class="panel-title"><span class="title-icon">🏆</span> COMPLETE PROJECT LEADERBOARD</h2>
+                <p class="panel-sub">Ranked in descending order of normalized z-score performance.</p>
+            </div>
+            <div class="panel-actions">
+                <div class="toolbar-search-box" style="max-width: 260px; margin: 0;">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="leaderboard-search" class="cyber-search-input" placeholder="Search leaderboard..." oninput="filterLeaderboardTable()">
+                </div>
+                <a href="/api/export.csv" class="btn-hud btn-outline btn-sm" target="_blank">
+                    <span class="btn-icon">📥</span> Download CSV
+                </a>
+            </div>
+        </div>
+
+        <div class="hud-table-wrapper">
+            <table class="hud-table" id="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th>RANK</th>
+                        <th>PROJECT TITLE</th>
+                        <th>TRACK</th>
+                        <th>NORMALIZED Z-SCORE</th>
+                        <th>RAW AVERAGE</th>
+                        <th>JUDGE REVIEWS</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-tbody">
+                    {% for res in results %}
+                    <tr class="{% if loop.index == 1 %}rank-first{% elif loop.index <= 3 %}rank-top3{% endif %}" data-title="{{ res.title|lower }}" data-track="{{ res.track|lower }}">
+                        <td>
+                            <strong class="rank-number">
+                                {% if loop.index == 1 %}🥇 #1{% elif loop.index == 2 %}🥈 #2{% elif loop.index == 3 %}🥉 #3{% else %}#{{ loop.index }}{% endif %}
+                            </strong>
+                        </td>
+                        <td><strong>{{ res.title }}</strong></td>
+                        <td><span class="track-badge track-{{ res.track|lower|replace(' ', '-')|replace('/', '-') }}">{{ res.track }}</span></td>
+                        <td><code class="z-score-val">{{ res.normalizedAvg|round(3) }}</code></td>
+                        <td><code>{{ res.rawAvg|round(2) }}</code></td>
+                        <td>{{ res.judgeCount }} review(s)</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">No published results available yet. Results will appear once an organizer publishes them from Mission Control.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+function filterLeaderboardTable() {
+    const q = (document.getElementById('leaderboard-search')?.value || '').toLowerCase().trim();
+    const rows = document.querySelectorAll('#leaderboard-tbody tr');
+    rows.forEach(tr => {
+        const title = tr.getAttribute('data-title') || '';
+        const track = tr.getAttribute('data-track') || '';
+        if (!q || title.includes(q) || track.includes(q)) {
+            tr.style.display = '';
+        } else {
+            tr.style.display = 'none';
+        }
+    });
+}
+
+function triggerConfetti() {
+    playCyberSound && playCyberSound('pass');
+    showToast('🎉 Congratulations to all participating hackathon builders!', 'success');
+}
+</script>
+{% endblock %}
